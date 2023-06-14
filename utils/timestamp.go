@@ -1,7 +1,6 @@
-package main
+package utils
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -20,10 +19,4 @@ func delayedTS(delay string) int64 {
 	dur, _ := time.ParseDuration(delay)
 	ret := now.Add(dur)
 	return ret.Unix()
-}
-
-func main() {
-	fmt.Println("Current Timestamp: ", currentTS())
-	fmt.Println("Target Timestamp", targetTS(2077, 7, 7, 7, 7, 7))
-	fmt.Println("Delayed Timestamp", delayedTS("1h"))
 }
