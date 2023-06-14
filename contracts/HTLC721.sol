@@ -155,10 +155,11 @@ contract HTLC721 is Ownable{
         return true;
     }
 
+    // functions for dev
+
     /**
      * @dev (for dev use) get the detailed HTLC transaction information
      * @param transactionID HTLC transaction ID
-     * @return fields extracted from the target HTLC lock
      */
     function getHTLC(bytes32 transactionID) public view onlyOwner returns(
         address sender,                     // sender of the asset
@@ -184,6 +185,14 @@ contract HTLC721 is Ownable{
             lock.refunded,
             lock.preimage
         );
+    }
+
+    /**
+     * @dev (for dev use) get current block time
+     * @return time current block time
+     */
+    function getCurrentBlockTime() public view onlyOwner returns(uint256 time){
+        return block.timestamp;
     }
 
     // internal utils
