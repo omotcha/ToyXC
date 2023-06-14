@@ -65,12 +65,12 @@ module.exports = {
       gas: 5000000,
       network_id: 5777
     },
-    // "eth2_ganache":{
-    //   host: "127.0.0.1",
-    //   port: 7546,
-    //   gas: 5000000,
-    //   network_id: 5778
-    // }
+    "eth2_ganache":{
+      host: "127.0.0.1",
+      port: 7544,
+      gas: 5000000,
+      network_id: 5776
+    }
 
     
     // Useful for testing. The `development` name is special - truffle uses it by default
