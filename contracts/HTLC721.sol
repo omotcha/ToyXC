@@ -20,7 +20,7 @@ contract HTLC721 is Ownable{
     }
 
     // HTLC locks
-    mapping (bytes32 => HTLCLock) locks;
+    mapping (bytes32 => HTLCLock) private _locks;
     
     // events
     event NewHTLC721Transaction(
@@ -59,31 +59,31 @@ contract HTLC721 is Ownable{
 
     modifier hashLockMatches(bytes32 transactionID, bytes32 preimage){
         // ensure input secret(preimage) matches the hash lock
-        require(locks[transactionID].hashLock == sha256(abi.encodePacked(preimage)), 
+        require(_locks[transactionID].hashLock == sha256(abi.encodePacked(preimage)),
         "HTLC hash lock does not match");
         _;
     }
 
     modifier withdrawable(bytes32 transactionID){
         // sanity check on whether asset is withdrawable
-        require(locks[transactionID].receiver == msg.sender, 
+        require(_locks[transactionID].receiver == msg.sender,
         "current user is not the asset receiver");
-        require(locks[transactionID].withdrawn == false, 
+        require(_locks[transactionID].withdrawn == false,
         "the asset has been withdrawn");
-        require(locks[transactionID].timeLock > block.timestamp, 
+        require(_locks[transactionID].timeLock > block.timestamp,
         "exceed the HTLC lock time");
         _;
     }
 
     modifier refundable(bytes32 transactionID){
         // sanity check on whether asset is refundable
-        require(locks[transactionID].sender == msg.sender, 
+        require(_locks[transactionID].sender == msg.sender,
         "current user is not the asset sender");
-        require(locks[transactionID].refunded == false, 
+        require(_locks[transactionID].refunded == false,
         "the asset has been refunded");
-        require(locks[transactionID].withdrawn == false, 
+        require(_locks[transactionID].withdrawn == false,
         "the asset has been withdrawn");
-        require(locks[transactionID].timeLock <= block.timestamp, 
+        require(_locks[transactionID].timeLock <= block.timestamp,
         "should exceed the HTLC lock time");
         _;
     }
@@ -111,7 +111,8 @@ contract HTLC721 is Ownable{
         returns(bytes32 transactionID){
             transactionID = sha256(abi.encodePacked(msg.sender, receiver, erc721Contract, erc721TokenID, hashLock, timeLock));
             if (_haveContract(transactionID)) revert("transaction already exists");
-            locks[transactionID] = HTLCLock(msg.sender, receiver, erc721Contract, erc721TokenID, hashLock, timeLock, false, false, 0x0);
+            ERC721(erc721Contract).transferFrom(msg.sender, address(this), erc721TokenID);
+            _locks[transactionID] = HTLCLock(msg.sender, receiver, erc721Contract, erc721TokenID, hashLock, timeLock, false, false, 0x0);
             emit NewHTLC721Transaction(transactionID, msg.sender, receiver, erc721Contract, erc721TokenID, hashLock, timeLock);
     }
 
@@ -129,7 +130,7 @@ contract HTLC721 is Ownable{
         hashLockMatches(transactionID, preimage) 
         withdrawable(transactionID)
         returns(bool){
-        HTLCLock storage lock = locks[transactionID];
+        HTLCLock storage lock = _locks[transactionID];
         lock.preimage = preimage;
         lock.withdrawn = true;
         ERC721(lock.erc721Contract).transferFrom(address(this), lock.receiver, lock.erc721TokenID);
@@ -148,7 +149,7 @@ contract HTLC721 is Ownable{
         transactionExists(transactionID) 
         refundable(transactionID) 
         returns(bool){
-        HTLCLock storage lock = locks[transactionID];
+        HTLCLock storage lock = _locks[transactionID];
         lock.refunded = true;
         ERC721(lock.erc721Contract).transferFrom(address(this), lock.sender, lock.erc721TokenID);
         emit HTLC721Refunded(transactionID);
@@ -173,7 +174,7 @@ contract HTLC721 is Ownable{
         bytes32 preimage                    // preimage of the hash lock
     ){
         if (!_haveContract(transactionID)) return (address(0), address(0), address(0), 0, 0, 0, false, false, 0);
-        HTLCLock storage lock = locks[transactionID];
+        HTLCLock storage lock = _locks[transactionID];
         return (
             lock.sender,
             lock.receiver,
@@ -195,9 +196,18 @@ contract HTLC721 is Ownable{
         return block.timestamp;
     }
 
+    /**
+     * @dev (for dev use) get the hash lock of the preimage
+     * @param preimage the preimage
+     * @return hashLock the encoded hashing of the preimage
+     */
+    function getHashLock(bytes32 preimage) public view onlyOwner returns(bytes32 hashLock){
+        hashLock = sha256(abi.encodePacked(preimage));
+    }
+
     // internal utils
     function _haveContract(bytes32 transactionID) internal view returns (bool exists) {
-        exists = (locks[transactionID].sender != address(0));
+        exists = (_locks[transactionID].sender != address(0));
     }
 
 }

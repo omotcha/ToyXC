@@ -14,5 +14,5 @@ func TestTargetTS(t *testing.T) {
 }
 
 func TestDelayedTS(t *testing.T) {
-	fmt.Println("Delayed Timestamp", delayedTS("1h"))
+	fmt.Println("Delayed Timestamp", delayedTS("3m"))
 }
